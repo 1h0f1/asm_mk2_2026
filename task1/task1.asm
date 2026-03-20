@@ -41,78 +41,137 @@ crc16_table dw 0000h,1021h,2042h,3063h,4084h,50A5h,60C6h,70E7h
 
 inputMaxLength db 254
 inputLength    db ?
-inputBuffer    db 256 dup(?)
+inputData      db 256 dup(?)
 
-newline db 13,10,'$'
+hex_buffer     db 5 dup(?)
+
+newline        db 13,10,'$'
 
 data_segment ends
 
 code_segment segment para use16
 assume cs:code_segment, ds:data_segment, ss:stack_segment
 
-start:
-    mov ax, data_segment
-    mov ds, ax
+PrintString PROC
+    push ax
+    mov  ah, 09h
+    int  21h
+    pop  ax
+    ret
+PrintString ENDP
 
-    mov ax, stack_segment
-    mov ss, ax
+ReadInput PROC
+    push ax
+    push dx
+    
+    mov  ah, 0Ah
+    int  21h
+    
+    mov  bx, dx
+    inc  bx
+    xor  cx, cx
+    mov  cl, byte ptr [bx]
+    
+    pop  dx
+    pop  ax
+    ret
+ReadInput ENDP
 
-    mov ah, 0Ah
-    lea dx, inputMaxLength
-    int 21h
+CalcCRC16 PROC
+    push si
+    push cx
+    push ax
+    push bx
 
-    mov ah, 09h
-    lea dx, newline
-    int 21h
-
-    lea si, inputBuffer
-    xor cx, cx
-    mov cl, inputLength
-
-    mov dx, 0FFFFh
-
-    cmp cl, 0
-    je print_result
+    mov  dx, 0FFFFh
+    
+    cmp  cx, 0
+    je   crc_done
 
 crc_loop:
-    mov al, [si]
-    inc si
+    mov  al, byte ptr [si]
+    inc  si
 
-    mov bx, dx
-    shr bx, 8
-    xor bl, al
-    xor bh, bh
+    mov  bx, dx
+    shr  bx, 8
+    xor  bl, al
+    xor  bh, bh
 
-    shl dx, 8
+    shl  dx, 8
 
-    shl bx, 1
-    mov ax, crc16_table[bx]
+    shl  bx, 1
+    mov  ax, word ptr crc16_table[bx]
 
-    xor dx, ax
+    xor  dx, ax
 
     loop crc_loop
 
-print_result:
-    mov cx, 4
-    mov bx, dx
+crc_done:
+    pop  bx
+    pop  ax
+    pop  cx
+    pop  si
+    ret
+CalcCRC16 ENDP
 
-print_loop:
-    rol bx, 4
+WordToHexStr PROC
+    push ax
+    push bx
+    push cx
+    push dx
 
-    mov dl, bl
-    and dl, 0Fh
+    mov  bx, dx
+    mov  cx, 4
+    mov  di, offset hex_buffer
 
-    cmp dl, 9
-    jbe digit
-    add dl, 7
+convert_loop:
+    rol  bx, 4
+    
+    mov  al, bl
+    and  al, 0Fh
+    
+    cmp  al, 9
+    jbe  is_digit
+    add  al, 7
 
-digit:
-    add dl, '0'
+is_digit:
+    add  al, '0'
+    mov  byte ptr [di], al
+    inc  di
+    
+    loop convert_loop
 
-    mov ah, 02h
-    int 21h
+    mov  byte ptr [di], '$'
 
-    loop print_loop
+    pop  dx
+    pop  cx
+    pop  bx
+    pop  ax
+    ret
+WordToHexStr ENDP
+
+start:
+    mov ax, data_segment
+    mov ds, ax
+    mov es, ax
+    mov ax, stack_segment
+    mov ss, ax
+
+    lea dx, inputMaxLength
+    call ReadInput
+    
+    lea si, inputData
+    
+    lea dx, newline
+    call PrintString
+
+    call CalcCRC16
+
+    lea di, hex_buffer
+    call WordToHexStr
+
+    lea dx, hex_buffer
+    call PrintString
 
     mov ax, 4C00h
     int 21h
