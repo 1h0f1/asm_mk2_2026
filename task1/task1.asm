@@ -79,6 +79,7 @@ ReadInput ENDP
 
 CalcCRC16 PROC
     push si
+    push di
     push cx
     push ax
     push bx
@@ -100,7 +101,10 @@ crc_loop:
     shl  dx, 8
 
     shl  bx, 1
-    mov  ax, word ptr crc16_table[bx]
+    
+    mov  di, offset crc16_table
+    add  di, bx
+    mov  ax, word ptr [di]
 
     xor  dx, ax
 
@@ -110,6 +114,7 @@ crc_done:
     pop  bx
     pop  ax
     pop  cx
+    pop  di
     pop  si
     ret
 CalcCRC16 ENDP
@@ -167,7 +172,6 @@ start:
 
     call CalcCRC16
 
-    lea di, hex_buffer
     call WordToHexStr
 
     lea dx, hex_buffer
