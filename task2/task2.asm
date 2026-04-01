@@ -33,7 +33,7 @@ dat segment para public
     second_str db 10 dup(?)
     second_len db ?
     
-    prompt_expr db "Enter expression: ", "$"
+    prompt_expr db "Enter expression (dec: 5 - 3 or hex: 0xA + 0x1F): ", "$"
     prompt_res db "Answer: ", "$"
     hex_start db " (hex: $"
     hex_end db ")$"
