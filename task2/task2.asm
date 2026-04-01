@@ -15,11 +15,6 @@ param2 equ 6
 param3 equ 8
 param4 equ 10
 
-local1 equ -2
-local2 equ -4
-local3 equ -6
-local4 equ -8
-
 stk segment para stack
     db 65530 dup(?)
 stk ends
