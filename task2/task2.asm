@@ -15,11 +15,6 @@ param2 equ 6
 param3 equ 8
 param4 equ 10
 
-local1 equ -2
-local2 equ -4
-local3 equ -6
-local4 equ -8
-
 stk segment para stack
     db 65530 dup(?)
 stk ends
@@ -38,7 +33,7 @@ dat segment para public
     second_str db 10 dup(?)
     second_len db ?
     
-    prompt_expr db "Enter expression: ", "$"
+    prompt_expr db "Enter expression (dec: 5 - 3 or hex: 0xA + 0x1F): ", "$"
     prompt_res db "Answer: ", "$"
     hex_start db " (hex: $"
     hex_end db ")$"
@@ -59,7 +54,6 @@ dat segment para public
 dat ends
 
 cod segment para public use16
-
 assume cs:cod, ds:dat, ss:stk
 
 print_newline proc near
@@ -86,11 +80,9 @@ print_newline endp
 terminate proc near
     push bp
     mov bp, sp
-    
     mov ah, 4ch
     mov al, 0
     int 21h
-    
     mov sp, bp
     pop bp
     ret
@@ -100,17 +92,12 @@ show_zero_error proc near
     push bp
     mov bp, sp
     push dx
-    push ax
-
     lea dx, error_zero
     mov ah, 09h
     int 21h
-
-    mov ah, 4ch
     mov al, ERR_ZERO_DIV
+    mov ah, 4ch
     int 21h
-    
-    pop ax
     pop dx
     mov sp, bp
     pop bp
@@ -121,17 +108,12 @@ show_range_error proc near
     push bp
     mov bp, sp
     push dx
-    push ax
-
     lea dx, error_range
     mov ah, 09h
     int 21h
-
-    mov ah, 4ch
     mov al, ERR_RANGE
+    mov ah, 4ch
     int 21h
-    
-    pop ax
     pop dx
     mov sp, bp
     pop bp
@@ -142,17 +124,12 @@ show_syntax_error proc near
     push bp
     mov bp, sp
     push dx
-    push ax
-
     lea dx, error_syntax
     mov ah, 09h
     int 21h
-
-    mov ah, 4ch
     mov al, ERR_SYNTAX
+    mov ah, 4ch
     int 21h
-    
-    pop ax
     pop dx
     mov sp, bp
     pop bp
@@ -163,17 +140,12 @@ show_op_error proc near
     push bp
     mov bp, sp
     push dx
-    push ax
-
     lea dx, error_op
     mov ah, 09h
     int 21h
-
-    mov ah, 4ch
     mov al, ERR_BAD_OP
+    mov ah, 4ch
     int 21h
-    
-    pop ax
     pop dx
     mov sp, bp
     pop bp
@@ -184,17 +156,12 @@ show_empty_error proc near
     push bp
     mov bp, sp
     push dx
-    push ax
-
     lea dx, error_empty
     mov ah, 09h
     int 21h
-
-    mov ah, 4ch
     mov al, ERR_EMPTY
+    mov ah, 4ch
     int 21h
-    
-    pop ax
     pop dx
     mov sp, bp
     pop bp
@@ -204,9 +171,7 @@ show_empty_error endp
 exit_clean proc near
     push bp
     mov bp, sp
-    
     call terminate
-    
     mov sp, bp
     pop bp
     ret
@@ -1181,6 +1146,8 @@ display_result proc near
     mov bp, sp
     push ax
     push dx
+    push cx
+    push di
 
     cmp byte ptr [is_multiply], 0
     je display_word_result
@@ -1211,13 +1178,14 @@ display_dword_result:
 display_word_result:
     mov ax, word ptr [other_result]
 
-    mov cx, 9
     lea di, output_hex
-    push ax
-    xor al, al
-    rep stosb
-    pop ax
-    
+    mov cx, 9
+clear_hex_buf:
+    mov byte ptr [di], 0
+    inc di
+    loop clear_hex_buf
+
+    mov ax, word ptr [other_result]
     push ax
     lea ax, output_dec
     push ax
@@ -1256,6 +1224,8 @@ print_output:
 
     call print_newline
 
+    pop di
+    pop cx
     pop dx
     pop ax
     mov sp, bp
